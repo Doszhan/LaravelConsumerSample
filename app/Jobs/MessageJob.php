@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\Message;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +20,7 @@ class MessageJob implements ShouldQueue
      *
      * @return void
      */
-    public function __construct(Message $message)
+    public function __construct($message)
     {
         $this->message = $message;
     }

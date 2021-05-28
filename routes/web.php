@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\MessageJob;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,5 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
+    \Log::info("Dispatch MessageJob");
+    MessageJob::dispatch("hello");
     return view('welcome');
 });
