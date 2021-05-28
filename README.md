@@ -1,62 +1,80 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+## Note
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+In production it may worth to use [Lumen](https://lumen.laravel.com/) (lighted, fast version of Laravel designed specificly for microservices), but for this task I prefered normal Laravel with handy artisan commands and other helper tools.
 
-## About Laravel
+During implementation, I convinced that Laravel and Symfony have a lot in common.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Start
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Run RabbitMQ with default parameters (localhost, 5672, 'guest/guest') or specify them in .env file. Also in .env it is needed to specify that we want to use rabbitmq (as in .env.example):
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```QUEUE_CONNECTION=rabbitmq```
 
-## Learning Laravel
+Install packages:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```composer i```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Run app:
 
-## Laravel Sponsors
+```php artisan serve```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+To dispatch sample message into the queue open laravel homepage. Most likely: [http://localhost:8000/](http://localhost:8000/)
 
-### Premium Partners
+## Task 1
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
+> Program the skeleton of a small microservice that will listen on a queue (e.g ActiveMQ, RabbitMQ or ZeroMQ).
 
-## Contributing
+I chose RabbitMQ, because this is the tool I used before. Also it seems it is the most popular one, so it has big community and many great articles.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+> The microservice should provide a CLI-command that will start the listening process
 
-## Code of Conduct
+I may think about writing [custom console commands](https://laravel.com/docs/8.x/artisan#writing-commands), but Laravel has built-in command for starting listening process:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```php artisan queue:work```
 
-## Security Vulnerabilities
+> To avoid a memory overflow, the process should only run for a certain period of time. The time should be configurable when starting the script.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```php artisan queue:work --max-time=600```
 
-## License
+Here --max-time is number of seconds when the listening process will keep alive. We also may want to specify maximum number of jobs:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```php artisan queue:work --max-jobs=1000```
+
+I found that in Symfony we can specify memory limit: 
+
+```php bin/console messenger:consume async --time-limit=3600 --memory-limit=128M```
+
+> Please describe with few words, how would you ensure that this command is always executed without a manual start/stop?
+
+There is a special tool which will take care of that - [Supervisor](https://laravel.com/docs/8.x/queues#supervisor-configuration). It works both for Laravel and Symfony queues. 
+
+## Task 2
+
+> Imagine the queue message contains information about another message that can be sent via different channels such a SMS, Email or WhatsApp.
+> Please define a default class structure/interface for this kind of message.
+
+I created Laravel Models for that: [Message](https://github.com/Doszhan/LaravelConsumerSample/blob/main/app/Models/Message.php) and [MessageAttachment](https://github.com/Doszhan/LaravelConsumerSample/blob/main/app/Models/MessageAttachment.php).
+
+The key points:
+
+- Message can be of SMS, Email or Whatsapp types. Therefore we have $type attribute;
+- We can store types of messages in small table in database. But since it is going to be modified very rarely we can define it in Model;
+- There are helper methods in Models to deal with $type;
+- Email has a Subject, therefore we have $title attribute;
+- Email and Whatsapp messages may have $attachments.
+
+> Please describe with few words, how would you implement the sending of a message for different channels.
+
+By default we send messages to `default` channel. We can configure default channel by setting `RABBITMQ_QUEUE` in .env file.
+
+To send to different channels we use following syntax:
+
+```MessageJob::dispatch('hello')->onQueue('high');```
+
+We can set priority channels by parameters when running listener:
+
+```php artisan queue:work --queue=high,default```
+
+## Test
+
+Since it is a microservice there is a great straitforward way of testing. In test we can send a message into the queue and check if the microservice did what it should do.
