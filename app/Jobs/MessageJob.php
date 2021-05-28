@@ -33,5 +33,7 @@ class MessageJob implements ShouldQueue
     public function handle()
     {
         \Log::info("Handle: {$this->message}");
+        $output = new \Symfony\Component\Console\Output\ConsoleOutput();
+        $output->writeln($this->message);
     }
 }
