@@ -27,6 +27,10 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        \Log::info("Binding");
+        $this->app->bind(
+            \App\Jobs\MessageJob::class.'@handle',
+            fn($job) => $job->handle()
+        );
     }
 }
